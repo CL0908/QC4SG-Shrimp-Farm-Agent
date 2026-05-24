@@ -43,11 +43,11 @@ def highlight_risk(row):
     risk = row["risk_score"]
 
     if risk >= 0.7:
-        return ["background-color: #ffcccc"] * len(row)
+        return ["background-color: #7f1d1d; color: white;"] * len(row)   # dark red
     elif risk >= 0.4:
-        return ["background-color: #fff2cc"] * len(row)
+        return ["background-color: #92400e; color: white;"] * len(row)   # dark orange
     else:
-        return ["background-color: #d9ead3"] * len(row)
+        return ["background-color: #14532d; color: white;"] * len(row)   # dark green
 
 display_df = df[["pond_id", "date", "risk_score", "hotspot", "top_driver", "action_flag"]]
 
