@@ -2,11 +2,11 @@ import os
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
+from google import genai
 
 # Load API key from .env
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 st.set_page_config(page_title="Shrimp Pond AI Copilot", layout="wide")
 
@@ -39,13 +39,24 @@ df = pd.read_csv("model_input.csv")
 # -------------------------
 st.subheader("Screen 1: Pond Risk Table")
 
-st.dataframe(
-    df[["pond_id", "date", "risk_score", "hotspot", "top_driver", "action_flag"]],
-    width="stretch"
-)
+def highlight_risk(row):
+    risk = row["risk_score"]
+
+    if risk >= 0.7:
+        return ["background-color: #ffcccc"] * len(row)
+    elif risk >= 0.4:
+        return ["background-color: #fff2cc"] * len(row)
+    else:
+        return ["background-color: #d9ead3"] * len(row)
+
+display_df = df[["pond_id", "date", "risk_score", "hotspot", "top_driver", "action_flag"]]
+
+styled_df = display_df.style.apply(highlight_risk, axis=1)
+
+st.dataframe(styled_df, width="stretch")
 
 # -------------------------
-# Add this below your table
+# Select Pond
 # -------------------------
 st.subheader("Select a Pond")
 
@@ -78,18 +89,26 @@ st.write("Top driver:", pond_data["top_driver"])
 st.write("Action flag:", pond_data["action_flag"])
 
 # -------------------------
-# AI Copilot Explanation
+# Gemini AI Copilot Explanation
 # -------------------------
 def get_copilot_explanation(pond_data):
     pond_dict = pond_data.to_dict()
 
-    response = client.responses.create(
-        model="gpt-4o-mini",
-        instructions=SYSTEM_PROMPT,
-        input=f"Here is the pond risk data: {pond_dict}"
+    prompt = f"""
+{SYSTEM_PROMPT}
+
+Here is the pond risk data:
+{pond_dict}
+
+Write the 3-sentence recommendation now.
+"""
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
     )
 
-    return response.output_text
+    return response.text
 
 st.subheader("AI Copilot Explanation")
 
@@ -103,5 +122,5 @@ if st.button("Explain this pond"):
 # -------------------------
 st.subheader("Screen 3: Replan Alert")
 
-if st.button("Replan & Refresh Data"):
+if st.button("Replan & Refresh"):
     st.success("New data received. Risk table refreshed. Please review updated pond priorities.")
